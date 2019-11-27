@@ -4,18 +4,25 @@ from flask_pymongo import PyMongo
 
 from flask_bootstrap import Bootstrap
 
-from datetime import datetime
+from datetime import *
 
 from flask_moment import Moment
 
+#from pytz import timezone
+
 import pandas_datareader as pdr
 import pandas as pd
+from passlib.hash import sha256_crypt
 
 import requests
+
+
 
 app = Flask('my-stock')
 
 app.config['SECRET_KEY'] = 'sOtCk!'
+
+app.config['REMEMBER_COOKIE_DURATION']= timedelta
 
 app.config['MONGO_URI'] = 'mongodb://localhost:27017/my-stock-db'
 
@@ -28,15 +35,25 @@ mongo = PyMongo(app)
 weather_api = 'c115e005de28c13c6e9ff0ad6d7b14ca'
 
 def stock_market():
-    current = datetime.now().strftime("%Y-%m-%d")
+    print(datetime.now())
+    current = datetime.now()
+    week = datetime.now().strftime('%w')
+    s = timedelta(days = 0)
+    if week =='6':
+        s = timedelta(days=1)
+    elif week =='0':
+        s = timedelta(days=2)
+    current = current - s
+    current = current.strftime("%Y-%m-%d")
+    #current='2019-10-26'
     dowjone = pdr.get_data_yahoo('^DJI', start=current, end=current)['Adj Close']
     dowjone = pd.Series(dowjone[current])
     dow = [x for x in dowjone][0]
-
     nasd = pdr.get_data_yahoo('^IXIC', start=current, end=current)['Adj Close']
     nasd = pd.Series(nasd[current])
     nas = [x for x in nasd][0]
     stk = [round(dow,5), round(nas,5)]
+
     return stk
 
 def weather():
@@ -58,19 +75,36 @@ def weather():
 
     des = data['weather'][0]['description']
 
-    weather_list = [temp,humidity, wea,des]
-
+    weather_list = [temp,humidity, wea,des,city]
     return weather_list
-
 
 @app.route('/', methods = ['GET','POST'])
 def register():
+
     session.pop('user-info', None)
     if request.method == 'GET':
         return render_template('register.html')
     elif request.method == 'POST':
         doc = {}
-        user = mongo.db.users.find({})
+        doc['email'] = request.form['email']
+        found = mongo.db.users.find_one(doc)
+        '''if found is not None:
+            passcode = found['password']
+            if len(passcode) < 77:
+                mongo.db.users.remove(found)
+        '''
+        if found is None:
+            doc['firstname'] = request.form['firstname']
+            doc['lastname'] = request.form['lastname']
+            doc['password'] = sha256_crypt.encrypt(request.form['password'])
+            doc['amount'] = 0
+            mongo.db.users.insert_one(doc)
+            flash('Account created successfully!')
+            return redirect('/login')
+        else:
+            flash('That user name is taken, please try again.')
+            return redirect('/')
+        '''
         for item in request.form:
             doc[item] = request.form[item]
         user_list= []
@@ -81,67 +115,198 @@ def register():
         if doc['email'] in user_list:
             flash( doc['email']+' already registered')
             return redirect('/')
-        mongo.db.users.insert_one(doc)
+        '''
 
-        flash('Account created successfullu!')
-        return redirect('/login')
 
 @app.route('/login', methods =['GET','POST'])
 def login():
     if request.method == 'GET':
         return render_template('login.html')
     elif request.method == 'POST':
-        doc = {'email':request.form['email'],'password':request.form['password']}
 
-        found = mongo.db.users.find_one(doc)
-        if found is None:
-            flash('user name and password you entered did not match our record. Please check it again')
+        term = request.form.get('accept')
+        if term == None:
+            flash('Please check the terms, thank you.')
             return redirect('/login')
-        else:
-            lst = weather()
-            stk_list = stock_market()
-            session['user-info'] = {'firstname':found['firstname'],'lastname':found['lastname'], 'email':found['email'],'loginTime': datetime.utcnow(),
-                                    'temp':lst[0],'hum':lst[1], 'weather':lst[2], 'dow':stk_list[0], 'nas':stk_list[1]}
-            return redirect('/stock')
+        if term == 'yes':
+            email = request.form['email']
+            print(email)
+            #doc = {'email': request.form['email'], 'password': request.form['password']}
+            found = mongo.db.users.find_one({'email':email})
+            if found is None:
+                print('non')
+                flash('Sign Up or Register')
+                return redirect('/')
+            else:
+                try:
+                    if sha256_crypt.verify(request.form['password'], found['password']):
+                        lst = weather()
+                        stk_list = stock_market()
+                        session['user-info'] = {'firstname': found['firstname'], 'lastname': found['lastname'],
+                                            'email': found['email'], 'loginTime': datetime.utcnow(),'amount':found['amount'],
+                                            'temp': lst[0], 'hum': lst[1], 'city':lst[-1], 'weather': lst[2], 'dow': stk_list[0],
+                                            'nas': stk_list[1]}
+                        return redirect('/account')
+
+                    else:
+                        flash('user name and password you entered did not match our record. Please check it again')
+                        return redirect('/login')
+                except ValueError:
+                    flash('password is not encrypted in database, please sign up again, Thank you.')
+                    return redirect('/')
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/account', methods=['GET','POST'])
+def account():
+    if 'user-info' in session:
+
+        #userinfo = mongo.db.entries.find({'user': session['user-info']['email']})
+        userinfo = mongo.db.users.find({'email': session['user-info']['email']})
+
+        info = [x for x in userinfo]
+        print('info=' , info)
+
+        if request.method == 'GET':
+            return render_template('account.html', saveinfo = info)
+        elif request.method == 'POST':
+            userinfo = mongo.db.users.find({'user': session['user-info']['email']})
+            balance = int( session['user-info']['amount'])
+
+            amount = request.form['amount']
+            if len(amount) > 0:
+                amount = int(amount)
+            choice = request.form['choice']
+            print(choice)
+            if choice == 'deposit':
+                balance += amount
+            elif choice == 'withdraw':
+                if balance < amount:
+                    flash('Sorry, your account is out of balance')
+                else:
+                    balance -= amount
+            elif choice == 'clear':
+                balance = 0
+                print(choice, balance)
+                mongo.db.users.update({'email': session['user-info']['email']}, {'$set': {'amount': balance}})
+                return redirect('/logout')
+            mongo.db.users.update({'email':session['user-info']['email']},{'$set':{'amount':balance}})
+            return redirect('/account')
+
+
+@app.route('/checkout', methods=['GET','POST'])
+def checkout():
+
+    if 'user-info' in session:
+        if request.method == 'GET':
+            savelogin = session['user-info']
+            print('save=',savelogin)
+            return render_template('checkout.html', entries=savelogin)
+
+        elif request.method == 'POST':
+            user = mongo.db.entries.find({'user': session['user-info']['email']})
+            info = [x for x in user]
+            print('info',info)
+            entry = {}
+            entry['email'] = session['user-info']['email']
+            share = request.form['share']
+            tick = request.form['tick']
+
+            week = datetime.now().strftime('%w')
+            if week == '6' or week == '0':
+                price = 0
+                flash('market closed')
+                return redirect('/checkout')
+            else:
+                cur = datetime.now().strftime("%Y-%m-%d")
+                ticker = pdr.get_data_yahoo(tick.upper(), start=cur, end=cur)['Adj Close']
+                print(ticker)
+                ticker = pd.Series(ticker[cur])
+                price = [x for x in ticker][0]
+            share = int(share)
+            count = 0
+
+
+            print(count, user.count())
+            '''
+            if count == user.count() and (not (week == '6' or week == '0')):
+                edit = 'insert'
+            '''
+            entry['tick'] = tick
+            entry['share'] = share
+            entry['price'] = round(price, 3)
+            total = round(int(share) * price, 3)
+            entry['total'] = total
+            #entry['time'] = datetime.now()
+            entry['loginTime'] = session['user-info']['loginTime']
+            print('entry=',entry)
+
+            #entry = {'user': session['user-info']['email'], 'content': request.form['content'], 'time': datetime.utcnow()}
+
+            if len(info) == 0:
+                entry['diff']=0
+            else:
+                for i in info:
+                    if entry['tick'] == i['tick']:
+                        entry['diff'] = i['price'] * entry['share'] - entry['total']
+
+            session['user-info'] = entry
+
+            return redirect('/checkout')
+    else:
+        flash('You need to login first')
+        return redirect('/login')
 
 @app.route('/stock', methods=['GET','POST'])
 def stock():
     total = 0
-
+    user = mongo.db.users.find({'email': session['user-info']['email']})
+    info = [x for x in user]
+    print(info)
+    global price
     if 'user-info' in session:
-        userinfo = mongo.db.entries.find({'user':session['user-info']['email']})
         if request.method == 'GET':
-
+            #user = mongo.db.users.find({'email': session['user-info']['email']})
+            #info = [x for x in user]
             savelogin = mongo.db.entries.find({'user':session['user-info']['email']})
             for entry in savelogin:
                 total = total + entry['total']
-            total = round(total,2)
+
             savelogin = mongo.db.entries.find({'user': session['user-info']['email']})
-            return render_template('stock.html', entries=savelogin, total = total)
+            return render_template('stock.html', entries=savelogin, total = total, info = info)
         elif request.method == 'POST':
-            edit = 'non'
+            edit = 'none'
             user = mongo.db.entries.find({'user': session['user-info']['email']})
             entry = {}
             entry['user'] = session['user-info']['email']
             share = request.form['share']
             tick = request.form['tick']
             act = request.form['action']
-            print(act)
-            current = datetime.utcnow().strftime("%Y-%m-%d")
-            ticker = pdr.get_data_yahoo(tick.upper(), start=current, end=current)['Adj Close']
-            ticker = pd.Series(ticker[current])
-            price = [x for x in ticker][0]
+            week = datetime.now().strftime('%w')
+            print(type(week),week)
+            if week == '6' or week == '0':
+                edit ='none'
+                act = 'none'
+                price = 0
+            else:
+                cur = datetime.now().strftime("%Y-%m-%d")
+                ticker = pdr.get_data_yahoo(tick.upper(), start=cur, end=cur)['Adj Close']
+                print(ticker)
+                ticker = pd.Series(ticker[cur])
+                price = [x for x in ticker][0]
 
             share = int(share)
-            print(user.count())
             count = 0
             for u in user:
                 u_share = int(u['share'])
+                if act == 'none':
+                    break
                 if u['tick'] == tick:
-                    if act == 'Buy':
+                    if act == 'buy':
                         share = u_share + share
                         edit = 'edit'
-                    elif act == 'Sell':
+                    elif act == 'sell':
                         print(u_share, share)
                         if u_share > share:
                             share = u_share - share
@@ -152,27 +317,34 @@ def stock():
                             edit = 'delete'
                     break
                 count += 1
-
-            if count == user.count():
+            print(count, user.count())
+            if count == user.count() and (not (week == '6' or week == '0')):
                 edit = 'insert'
-
-
             entry['tick'] = tick
-
             entry['share'] = share
             entry['price'] = round(price,3)
-
             total = round(int(share) * price, 3)
             entry['total'] = total
             entry['time'] = datetime.utcnow()
-
+            user = {}
+            user['_id'] = info[0]['_id']
             #entry ={'user':session['user-info']['email'],'content':request.form['content'],'time':datetime.utcnow()}
-            if edit == 'edit':
+            if edit == 'none' and act == 'none':
+                flash ('market closed')
+            elif edit == 'edit':
+                print(edit)
+                if act == 'sell':
+                    mongo.db.users.update_one({'_id':user['_id']}, {'$inc' : {'amount': total}})
+                if act == 'buy':
+                    print(act,-total)
+                    mongo.db.users.update_one({'_id': user['_id']}, {'$inc': {'amount': -total}})
                 mongo.db.entries.update_one({'tick': entry['tick']},{ '$set':{'share': entry['share'],'total' : entry['total'], 'time': entry['time']}})
             elif edit == 'insert':
+                #mongo.db.users.update_one({'_id': user['_id']}, {'$inc': {'amount': -total}})
                 mongo.db.entries.insert_one(entry)
             elif edit == 'delete':
-                mongo.db.entries.remove({'tick':entry['tick']})
+                mongo.db.users.update_one({'_id': user['_id']}, {'$inc': {'amount': total}})
+                mongo.db.entries.remove({'tick': entry['tick']})
             return redirect('/stock')
     else:
         flash('You need to login first')
@@ -181,7 +353,7 @@ def stock():
 @app.route('/logout')
 def logout():
     # removing user information from the session
-        session.pop('user-info', None)
-        return redirect('/login')
+    session.pop('user-info', None)
+    return redirect('/login')
 
 app.run(debug='True')

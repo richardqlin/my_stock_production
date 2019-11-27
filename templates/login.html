@@ -8,7 +8,20 @@
 <body>
 
 {% block content %}
-<div class="container text-center" style="border: 1px">
+
+<div class="container text-center" >
+    <form  method="POST" action="" class="form-group">
+
+            <input class="form-control" type="email" name="email" placeholder="email">
+            <input class="form-control" type="password" name="password" placeholder="password">
+            <input type="checkbox" id="checkout" name="accept" value="yes" >
+        I accept the <a href="/terms">terms of use</a><br>
+
+
+
+             <p><button class="btn btn-success" type="submit">Login</button></p>
+    </form>
+    <div class="container text-center" style="border: 1px">
 
     {% for message in get_flashed_messages() %}
 
@@ -17,14 +30,6 @@
     {% endfor %}
 
 </div>
-<div class="container text-center" >
-    <form  method="POST" action="" class="form-group">
-
-            <input class="form-control" type="email" name="email" placeholder="email">
-            <input class="form-control" type="password" name="password" placeholder="password">
-
-             <p><button class="btn btn-success" type="submit">Login</button></p>
-    </form>
 
 </div>
 

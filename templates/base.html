@@ -18,7 +18,6 @@
   {{ moment.include_jquery() }}
 {{ moment.include_moment() }}
 
-
 </head>
 <body>
 
@@ -28,16 +27,16 @@
 
 <a class="nav-link" href="/login">Login</a>
 
-
-
+{% if session['user-info'] is defined %}
+<a class="nav-link" href="/account">Account Balance</a>
+    <a class="nav-link" href="/stock">Trade My Stock</a>
+     <a class="nav-link" href="/checkout">Check Symbol</a>
+    {% endif %}
 <a class="nav-link" href="/logout">Logout</a>
 
 </div>
 
-
-
-
-<div id="content">
+<div id="content" style="background-image: linear-gradient(to right,  orange, gold)" >
 
 	{% block content %} {% endblock %}
 
@@ -49,20 +48,20 @@
 
 
         {% if session['user-info'] is defined %}
-                   <h3> Welcome {{ session['user-info']['firstname']|capitalize}}'s Stock Market Dairy  </h3>
+                   <h3> Welcome {{ session['user-info']['firstname']|capitalize}}'s Stock Portfolio  </h3>
+
             <strong> Login time: {{ moment(session['user-info']['loginTime']).format('LLLL') }}</strong> <br>
+
+
         <strong style="white-space:pre">Dow Jones: {{ session['user-info']['dow']}} Nasdaq: {{ session['user-info']['nas']}} </strong> <br>
-        <strong > Current Temperature: {{ session['user-info']['temp']}} degrees. Humidity:  {{ session['user-info']['hum']}}, Weather:  {{ session['user-info']['weather']}}
+        <strong >City: {{  session['user-info']['city']}}   Current Temperature: {{ session['user-info']['temp']}} degrees. Humidity:  {{ session['user-info']['hum']}}, Weather:  {{ session['user-info']['weather']}}
 
         </strong><br>
              <button> <a href = '/logout'>Not {{session['user-info']['email']}} ?</a> </button>
-
         {% else %}
-            <h3>My Stock Market Dairy </h3>
-
+            <h3>My Stock Portfolio </h3>
         {% endif %}
     </div>
-
     </div>
 </body>
 </html>

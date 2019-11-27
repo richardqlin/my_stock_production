@@ -9,14 +9,7 @@
 </head>
 <body>
 {% block content %}
-<div class="container text-center" style="border: 1px">
 
-    {% for message in get_flashed_messages() %}
-
-    <strong>{{ message }} </strong>
-
-    {% endfor %}
-</div>
 
 <div class="container text-center">
 
@@ -34,7 +27,17 @@
 
         </div>
 </form>
+    <div class="container text-center" style="border: 1px">
+
+    {% for message in get_flashed_messages() %}
+
+    <strong>{{ message }} </strong>
+
+    {% endfor %}
 </div>
+</div>
+
+
 
 
 
