@@ -17,8 +17,6 @@ from passlib.hash import sha256_crypt
 import holidays
 import requests
 
-
-
 app = Flask('my-stock')
 
 app.config['SECRET_KEY'] = 'sOtCk!'
@@ -107,7 +105,7 @@ def weather():
 
 @app.route('/', methods = ['GET','POST'])
 def register():
-
+    collection = mongo.db.AccountInformation
     session.pop('user-info', None)
     if request.method == 'GET':
         return render_template('register.html')
@@ -148,6 +146,7 @@ def register():
 
 @app.route('/login', methods =['GET','POST'])
 def login():
+    collection = mongo.db.AccountInformation
     if request.method == 'GET':
         return render_template('login.html')
     elif request.method == 'POST':
