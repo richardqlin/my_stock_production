@@ -785,7 +785,6 @@
       <change afterPath="$PROJECT_DIR$/../web_development/page6.html" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../web_development/page7.css" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../web_development/page7.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -942,9 +941,9 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="369" />
-    <option name="y" value="95" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="466" />
+    <option name="y" value="47" />
     <option name="width" value="883" />
     <option name="height" value="609" />
   </component>
