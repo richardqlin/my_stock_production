@@ -35,6 +35,8 @@ mongo = PyMongo(app)
 
 weather_api = 'c115e005de28c13c6e9ff0ad6d7b14ca'
 
+col = mongo.db.users
+
 collection = mongo.db.AccountInformation
 
 def offday():
@@ -105,7 +107,7 @@ def weather():
 
 @app.route('/', methods = ['GET','POST'])
 def register():
-    collection = mongo.db.AccountInformation
+
     session.pop('user-info', None)
     if request.method == 'GET':
         return render_template('register.html')
@@ -113,7 +115,7 @@ def register():
         doc = {}
         doc['email'] = request.form['email']
         #collection = mongo.db.AccountInformation
-        found = collection.find_one(doc)
+        found = col.find_one(doc)
         '''if found is not None:
             passcode = found['password']
             if len(passcode) < 77:
@@ -124,7 +126,7 @@ def register():
             doc['lastname'] = request.form['lastname']
             doc['password'] = sha256_crypt.encrypt(request.form['password'])
             doc['amount'] = 0
-            collection.insert_one(doc)
+            col.insert_one(doc)
             flash('Account created successfully!')
             return redirect('/login')
         else:
@@ -146,7 +148,7 @@ def register():
 
 @app.route('/login', methods =['GET','POST'])
 def login():
-    collection = mongo.db.AccountInformation
+    #collection = mongo.db.AccountInformation
     if request.method == 'GET':
         return render_template('login.html')
     elif request.method == 'POST':
@@ -159,7 +161,7 @@ def login():
             email = request.form['email']
             print(email)
             #doc = {'email': request.form['email'], 'password': request.form['password']}
-            found = collection.find_one({'email':email})
+            found = usercol.find_one({'email':email})
             if found is None:
                 print('non')
                 flash('Sign Up or Register')
@@ -190,7 +192,7 @@ def account():
     if 'user-info' in session:
 
         #userinfo = mongo.db.entries.find({'user': session['user-info']['email']})
-        userinfo = collection.find({'email': session['user-info']['email']})
+        userinfo = col.find({'email': session['user-info']['email']})
 
         info = [x for x in userinfo]
         print('info=' , info)
@@ -198,7 +200,7 @@ def account():
         if request.method == 'GET':
             return render_template('account.html', saveinfo = info)
         elif request.method == 'POST':
-            userinfo = collection.find({'user': session['user-info']['email']})
+            userinfo = col.find({'user': session['user-info']['email']})
             balance = int( session['user-info']['amount'])
 
             amount = request.form['amount']
@@ -216,9 +218,9 @@ def account():
             elif choice == 'clear':
                 balance = 0
                 print(choice, balance)
-                collection.users.update({'email': session['user-info']['email']}, {'$set': {'amount': balance}})
+                col.update({'email': session['user-info']['email']}, {'$set': {'amount': balance}})
                 return redirect('/logout')
-            collection.users.update({'email':session['user-info']['email']},{'$set':{'amount':balance}})
+            col.update({'email':session['user-info']['email']},{'$set':{'amount':balance}})
             return redirect('/account')
 
 
