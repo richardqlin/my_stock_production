@@ -37,6 +37,8 @@ mongo = PyMongo(app)
 
 weather_api = 'c115e005de28c13c6e9ff0ad6d7b14ca'
 
+collection = mongo.db.AccountInformation
+
 def offday():
     current = datetime.now()
     us = holidays.UnitedStates(state='CA')
@@ -101,6 +103,8 @@ def weather():
     weather_list = [temp,humidity, wea,des,city]
     return weather_list
 
+
+
 @app.route('/', methods = ['GET','POST'])
 def register():
 
@@ -110,7 +114,8 @@ def register():
     elif request.method == 'POST':
         doc = {}
         doc['email'] = request.form['email']
-        found = mongo.db.users.find_one(doc)
+        #collection = mongo.db.AccountInformation
+        found = collection.users.find_one(doc)
         '''if found is not None:
             passcode = found['password']
             if len(passcode) < 77:
@@ -121,7 +126,7 @@ def register():
             doc['lastname'] = request.form['lastname']
             doc['password'] = sha256_crypt.encrypt(request.form['password'])
             doc['amount'] = 0
-            mongo.db.users.insert_one(doc)
+            collection.users.insert_one(doc)
             flash('Account created successfully!')
             return redirect('/login')
         else:
@@ -155,7 +160,7 @@ def login():
             email = request.form['email']
             print(email)
             #doc = {'email': request.form['email'], 'password': request.form['password']}
-            found = mongo.db.users.find_one({'email':email})
+            found = collection.users.find_one({'email':email})
             if found is None:
                 print('non')
                 flash('Sign Up or Register')
@@ -186,7 +191,7 @@ def account():
     if 'user-info' in session:
 
         #userinfo = mongo.db.entries.find({'user': session['user-info']['email']})
-        userinfo = mongo.db.users.find({'email': session['user-info']['email']})
+        userinfo = collection.users.find({'email': session['user-info']['email']})
 
         info = [x for x in userinfo]
         print('info=' , info)
@@ -194,7 +199,7 @@ def account():
         if request.method == 'GET':
             return render_template('account.html', saveinfo = info)
         elif request.method == 'POST':
-            userinfo = mongo.db.users.find({'user': session['user-info']['email']})
+            userinfo = collection.users.find({'user': session['user-info']['email']})
             balance = int( session['user-info']['amount'])
 
             amount = request.form['amount']
@@ -212,9 +217,9 @@ def account():
             elif choice == 'clear':
                 balance = 0
                 print(choice, balance)
-                mongo.db.users.update({'email': session['user-info']['email']}, {'$set': {'amount': balance}})
+                collection.users.update({'email': session['user-info']['email']}, {'$set': {'amount': balance}})
                 return redirect('/logout')
-            mongo.db.users.update({'email':session['user-info']['email']},{'$set':{'amount':balance}})
+            collection.users.update({'email':session['user-info']['email']},{'$set':{'amount':balance}})
             return redirect('/account')
 
 
@@ -228,7 +233,7 @@ def checkout():
             return render_template('checkout.html', entries=savelogin)
 
         elif request.method == 'POST':
-            user = mongo.db.entries.find({'user': session['user-info']['email']})
+            user = collection.entries.find({'user': session['user-info']['email']})
             info = [x for x in user]
             print('info',info)
             entry = {}
@@ -283,22 +288,22 @@ def checkout():
 @app.route('/stock', methods=['GET','POST'])
 def stock():
     total = 0
-    user = mongo.db.users.find({'email': session['user-info']['email']})
+    user = collection.users.find({'email': session['user-info']['email']})
     info = [x for x in user]
     print(info)
     global price
     if 'user-info' in session:
         if request.method == 'GET':
 
-            savelogin = mongo.db.entries.find({'user':session['user-info']['email']})
+            savelogin = collection.entries.find({'user':session['user-info']['email']})
             for entry in savelogin:
                 total = total + entry['total']
 
-            savelogin = mongo.db.entries.find({'user': session['user-info']['email']})
+            savelogin = collection.entries.find({'user': session['user-info']['email']})
             return render_template('stock.html', entries=savelogin, total = total, info = info)
         elif request.method == 'POST':
             edit = 'none'
-            user = mongo.db.entries.find({'user': session['user-info']['email']})
+            user = collection.entries.find({'user': session['user-info']['email']})
             entry = {}
             entry['user'] = session['user-info']['email']
             share = request.form['share']
@@ -362,17 +367,17 @@ def stock():
             elif edit == 'edit':
                 print(edit)
                 if act == 'sell':
-                    mongo.db.users.update_one({'_id':user['_id']}, {'$inc' : {'amount': total}})
+                    collection.users.update_one({'_id':user['_id']}, {'$inc' : {'amount': total}})
                 if act == 'buy':
                     print(act,-total)
-                    mongo.db.users.update_one({'_id': user['_id']}, {'$inc': {'amount': -total}})
-                mongo.db.entries.update_one({'tick': entry['tick']},{ '$set':{'share': entry['share'],'total' : entry['total'], 'time': entry['time']}})
+                    collection.users.update_one({'_id': user['_id']}, {'$inc': {'amount': -total}})
+                collection.entries.update_one({'tick': entry['tick']},{ '$set':{'share': entry['share'],'total' : entry['total'], 'time': entry['time']}})
             elif edit == 'insert':
                 #mongo.db.users.update_one({'_id': user['_id']}, {'$inc': {'amount': -total}})
-                mongo.db.entries.insert_one(entry)
+                collection.entries.insert_one(entry)
             elif edit == 'delete':
-                mongo.db.users.update_one({'_id': user['_id']}, {'$inc': {'amount': total}})
-                mongo.db.entries.remove({'tick': entry['tick']})
+                collection.users.update_one({'_id': user['_id']}, {'$inc': {'amount': total}})
+                collection.entries.remove({'tick': entry['tick']})
             return redirect('/stock')
     else:
         flash('You need to login first')
