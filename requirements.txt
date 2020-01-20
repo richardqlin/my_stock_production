@@ -1,29 +1,29 @@
 
-Flask==1.1.1
-Flask-Bootstrap==3.3.7.1
-Flask-Moment==0.9.0
-Flask-PyMongo==2.3.0
-geographiclib==1.50
-geopy==1.20.0
+Flask
+Flask-Bootstrap
+Flask-Moment
+Flask-PyMongo
+geographiclib
+geopy
 
-heroku==0.1.4
-holidays==0.9.11
+heroku
+holidays
 
-itsdangerous==1.1.0
-Jinja2==2.10.3
+itsdangerous
+Jinja2
 
-numpy==1.17.2
-pandas==0.25.1
+numpy
+pandas
 pandas-datareader
 python-dateutil
 
-passlib==1.7.2
-pymongo==3.9.0
+passlib
+pymongo
 
 
-requests==2.22.0
+requests
 
-weather-forecast==0.49
+weather-forecast
 
-gunicorn==20.0.4
+gunicorn
 
