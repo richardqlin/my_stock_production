@@ -115,7 +115,7 @@ def register():
         doc = {}
         doc['email'] = request.form['email']
         #collection = mongo.db.AccountInformation
-        found = collection.users.find_one(doc)
+        found = collection.find_one(doc)
         '''if found is not None:
             passcode = found['password']
             if len(passcode) < 77:
@@ -126,9 +126,9 @@ def register():
             doc['lastname'] = request.form['lastname']
             doc['password'] = sha256_crypt.encrypt(request.form['password'])
             doc['amount'] = 0
-            collection.users.insert_one(doc)
+            collection.insert_one(doc)
             flash('Account created successfully!')
-            return redirect('https://mighty-meadow-46118.herokuapp.com/login')
+            return redirect('/login')
         else:
             flash('That user name is taken, please try again.')
             return redirect('/')
@@ -160,7 +160,7 @@ def login():
             email = request.form['email']
             print(email)
             #doc = {'email': request.form['email'], 'password': request.form['password']}
-            found = collection.users.find_one({'email':email})
+            found = collection.find_one({'email':email})
             if found is None:
                 print('non')
                 flash('Sign Up or Register')
@@ -191,7 +191,7 @@ def account():
     if 'user-info' in session:
 
         #userinfo = mongo.db.entries.find({'user': session['user-info']['email']})
-        userinfo = collection.users.find({'email': session['user-info']['email']})
+        userinfo = collection.find({'email': session['user-info']['email']})
 
         info = [x for x in userinfo]
         print('info=' , info)
@@ -199,7 +199,7 @@ def account():
         if request.method == 'GET':
             return render_template('account.html', saveinfo = info)
         elif request.method == 'POST':
-            userinfo = collection.users.find({'user': session['user-info']['email']})
+            userinfo = collection.find({'user': session['user-info']['email']})
             balance = int( session['user-info']['amount'])
 
             amount = request.form['amount']
