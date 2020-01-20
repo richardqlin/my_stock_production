@@ -15,7 +15,7 @@ Jinja2==2.10.3
 numpy==1.17.2
 pandas==0.25.1
 pandas-datareader
-python-dateutil==1.5
+python-dateutil
 
 passlib==1.7.2
 pymongo==3.9.0
