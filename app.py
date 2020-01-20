@@ -14,6 +14,7 @@ import pandas_datareader as pdr
 import pandas as pd
 from passlib.hash import sha256_crypt
 
+import holidays
 import requests
 
 
@@ -24,7 +25,9 @@ app.config['SECRET_KEY'] = 'sOtCk!'
 
 app.config['REMEMBER_COOKIE_DURATION']= timedelta
 
-app.config['MONGO_URI'] = 'mongodb://localhost:27017/my-stock-db'
+#app.config['MONGO_URI'] = 'mongodb://localhost:27017/my-stock-db'
+
+app.config['MONGO_URI'] = 'MONGOLAB_URI="mongodb://richardqlin:linqiwei1@ds211259.mlab.com:11259/mystock"'
 
 monent = Moment(app)
 
@@ -34,15 +37,35 @@ mongo = PyMongo(app)
 
 weather_api = 'c115e005de28c13c6e9ff0ad6d7b14ca'
 
+def offday():
+    current = datetime.now()
+    us = holidays.UnitedStates(state='CA')
+    delete = []
+    for k, v in us.items():
+        if v == 'Susan B. Anthony Day' or v == 'César Chávez Day' \
+                or v == 'César Chávez Day (Observed)' or v == 'Columbus Day' or v == 'Veterans Day':
+            delete.append(k)
+
+    for k in delete:
+        us.pop(k)
+    return current in us
+
 def stock_market():
     print(datetime.now())
     current = datetime.now()
     week = datetime.now().strftime('%w')
+
+
     s = timedelta(days = 0)
-    if week =='6':
+    if offday() and week =='1':
+        s = timedelta(days=3)
+    elif offday():
+        s = timedelta(days=1)
+    elif week =='6':
         s = timedelta(days=1)
     elif week =='0':
         s = timedelta(days=2)
+
     current = current - s
     current = current.strftime("%Y-%m-%d")
     #current='2019-10-26'
@@ -214,7 +237,7 @@ def checkout():
             tick = request.form['tick']
 
             week = datetime.now().strftime('%w')
-            if week == '6' or week == '0':
+            if week == '6' or week == '0' or offday():
                 price = 0
                 flash('market closed')
                 return redirect('/checkout')
@@ -240,7 +263,6 @@ def checkout():
             entry['total'] = total
             #entry['time'] = datetime.now()
             entry['loginTime'] = session['user-info']['loginTime']
-            print('entry=',entry)
 
             #entry = {'user': session['user-info']['email'], 'content': request.form['content'], 'time': datetime.utcnow()}
 
@@ -267,8 +289,7 @@ def stock():
     global price
     if 'user-info' in session:
         if request.method == 'GET':
-            #user = mongo.db.users.find({'email': session['user-info']['email']})
-            #info = [x for x in user]
+
             savelogin = mongo.db.entries.find({'user':session['user-info']['email']})
             for entry in savelogin:
                 total = total + entry['total']
@@ -285,18 +306,25 @@ def stock():
             act = request.form['action']
             week = datetime.now().strftime('%w')
             print(type(week),week)
-            if week == '6' or week == '0':
+            if week == '6' or week == '0' or offday():
                 edit ='none'
                 act = 'none'
                 price = 0
             else:
                 cur = datetime.now().strftime("%Y-%m-%d")
-                ticker = pdr.get_data_yahoo(tick.upper(), start=cur, end=cur)['Adj Close']
-                print(ticker)
+                try:
+                    ticker = pdr.get_data_yahoo(tick.upper(), start=cur, end=cur)['Adj Close']
+                except ValueError:
+                    flash('stock market is closed')
+                    return redirect('/stock')
+
                 ticker = pd.Series(ticker[cur])
                 price = [x for x in ticker][0]
-
-            share = int(share)
+            try:
+                share = int(share)
+            except ValueError:
+                flash('Please fill share numbers.')
+                return redirect('/stock')
             count = 0
             for u in user:
                 u_share = int(u['share'])
@@ -318,7 +346,7 @@ def stock():
                     break
                 count += 1
             print(count, user.count())
-            if count == user.count() and (not (week == '6' or week == '0')):
+            if count == user.count() and (not (week == '6' or week == '0' or offday())):
                 edit = 'insert'
             entry['tick'] = tick
             entry['share'] = share
