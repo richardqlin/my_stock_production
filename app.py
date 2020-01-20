@@ -384,4 +384,6 @@ def logout():
     session.pop('user-info', None)
     return redirect('/login')
 
-app.run(host = 'https://mighty-meadow-46118.herokuapp.com/',debug='True')
+
+if __name__ == '__main__':
+    app.run(host = 'https://mighty-meadow-46118.herokuapp.com/',debug='True')
