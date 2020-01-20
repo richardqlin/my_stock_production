@@ -128,7 +128,7 @@ def register():
             doc['amount'] = 0
             collection.users.insert_one(doc)
             flash('Account created successfully!')
-            return redirect('/login')
+            return redirect('https://mighty-meadow-46118.herokuapp.com/login')
         else:
             flash('That user name is taken, please try again.')
             return redirect('/')
