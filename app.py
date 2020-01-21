@@ -25,7 +25,7 @@ app.config['REMEMBER_COOKIE_DURATION']= timedelta
 
 #app.config['MONGO_URI'] = 'mongodb://localhost:27017/my-stock-db'
 
-app.config['MONGO_URI'] = 'mongodb://richardqlin:linqiwei1@ds211259.mlab.com:11259/mystock'
+app.config['MONGO_URI'] = 'mongodb://richardqlin:linqiwei1@ds211259.mlab.com:11259/mystock&retryWrites=false'
 
 monent = Moment(app)
 
