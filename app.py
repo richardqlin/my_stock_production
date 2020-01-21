@@ -127,6 +127,7 @@ def register():
             doc['password'] = sha256_crypt.encrypt(request.form['password'])
             doc['amount'] = 0
             col.insert_one(doc)
+
             flash('Account created successfully!')
             return redirect('/login')
         else:
