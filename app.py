@@ -297,7 +297,7 @@ def stock():
     if 'user-info' in session:
         if request.method == 'GET':
 
-            savelogin = collection.entries.find({'user':session['user-info']['email']})
+            savelogin = mongo.db.entries.find({'user':session['user-info']['email']})
             for entry in savelogin:
                 total = total + entry['total']
 
